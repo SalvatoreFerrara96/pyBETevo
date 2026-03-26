@@ -69,23 +69,24 @@ def short_term_probability(Monitoring, Parameters, lambda_short_term, a_param, s
         phi[i] = np.random.beta(alpha_param_M[i], beta_param_M[i], sample_length) #sampled short-term distribution 
     return phi
 
-def eruption_probability_rescale_st(phi_3, time_window):
+def eruption_probability_rescale_st(phi_3, t0, time_window):
     if time_window > 1:
         raise ValueError('Error: the time window must be equal or lower than 1')
+    if t0 + time_window > 1:
+        raise ValueError('Error: the sum between t0 and time_window must be equal or lower than 1')
     tau = 1 #original time window (1 month)
     Tc = 1/4 #characteristic time (1 week)
     t = np.linspace(0, tau, 1000) #time vector for the distribution that shows how the probability of eruption
     #evolves inside the time-window (see Selva et al., 2014)
-    tval = 0 #time of the observation
     k = 1 / (Tc * (1 - np.exp(-tau / Tc))) #normalizing factor
     ft = k * np.exp(-t / Tc) #equation 7 of Selva et al., 2014 (pdf)
     Ft = Tc * k - Tc * k * np.array(np.exp(-t / Tc)) #integral of equation 7 (cdf)
-    Ftval = np.interp(tval, t, Ft) #value of Ft at the time of observation
-    Ftpdt = np.interp(tval + time_window, t, Ft) #value of Ft at time of observation + dt
+    Ft0 = np.interp(t0, t, Ft) #value of Ft at the time of observation
+    Ftpdt = np.interp(t0 + time_window, t, Ft) #value of Ft at time of observation + dt
     #recaling the probability of eruption
     for i in range(len(phi_3)):
         phi3i = phi_3[i]
-        phi_3[i] = phi3i * (Ftpdt - Ftval) #equation 6 of Selva et al. 2014
+        phi_3[i] = phi3i * (Ftpdt - Ft0) #equation 6 of Selva et al. 2014
     return phi_3
 
 def absolute_probability(phi_2, phi_3, percentiles, phi_1 = [1]):
